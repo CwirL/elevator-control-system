@@ -1,54 +1,36 @@
-
-axes(handles.axes17)
-yourImage = imread('Ascensor.jpg');
-ascensor = imread('obj.jpg');
+global ax3 tResponse
 switch entrada
     case 1
         msgbox('Por favor ingrese el tipo de función para ver la respuesta en tiempo.')
     case 2 % Escalón Unitario
-       ft34 = step(ft2,t);
-       ff = ft34 + ft_p;
+       [tResponse, t1] = step(ft2,t);
+       tResponse = tResponse + ft_p;
        
        if mantener == 1
            hold on
        else
            hold off
        end
-       axes(handles.axes3)
-       ylim([-1.5 1.5])
+       ax3 = handles.axes3;
+       axes(ax3)
+       plot(t,tResponse,'r-')
+%        hold on 
+%        step(ft2,t)
+%        ylim([-1.5 1.5])
        
-       for i=1:length(ff)
-           hold on
-           plot(t(i),ff(i), 'b*')
-           pause(0.0001)
-       end
-       ffb = ff;
-       ff = ff/max(ff);
-       axes(handles.axes17)
-        yourImage = imread('Ascensor.jpg');
-        ascensor = imread('obj.jpg');
-        image(yourImage);
-        axis on
-        grid on
-        hold on
-        asc = image(200,300,ascensor);
-       for i=1:length(ff)
-           asc.YData = 200+200*ff(i);
-           pause(0.001)
-       end
-       
-       
-       y = lsiminfo(ff,t,0);
+       y = lsiminfo(tResponse,t);
+       stepinfo(ft2)
        %ts1 = y.SettlingTime;
-       Mp1 = (max(ff)-ff(end))/ff(end);
+       
+       Mp1 = (max(tResponse)-tResponse(end))/tResponse(end);
        for i=1:length(t)
-           if ff(i) == ff(end)
+           if tResponse(i) == tResponse(end)
                 tr1 = t(i);
                 break
            end 
        end
        for i=length(t):-1:1
-           if ff(i) > (ff(end)-ff(end)*0.2) || ff(i) > (ff(end)+ff(end)*0.2)
+           if tResponse(i) > (tResponse(end)-tResponse(end)*0.2) || tResponse(i) > (tResponse(end)+tResponse(end)*0.2)
                 ts1 = t(i);
                 %break
            end 
@@ -67,11 +49,14 @@ switch entrada
            hold off
        end
 
-       axes(handles.axes3)
+       
        impulse(ft2,t);
-       [y, t1] = impulse(ft2);
-       y = y + ft_p;
-       s = lsiminfo(y,t1,0);
+       [tResponse, t1] = impulse(ft2);
+       tResponse = tResponse + ft_p;
+       axes(handles.axes3)
+       plot(t1,tResponse)
+%        ylim([-1.5 1.5])
+       s = lsiminfo(tResponse,t1,0);
        ts1 = s.SettlingTime;
        tp1 = s.MaxTime;
        set(handles.Mp,'String',NaN); 
@@ -81,16 +66,17 @@ switch entrada
 
    case 4 %Entrada Rampa 
        u = t;
-       [y, t1] = lsim(ft2,u,t);
-       y = y + ft_p;
+       [tResponse, t1] = lsim(ft2,u,t);
+       tResponse = tResponse + ft_p;
        if mantener == 1
            hold on
        else
            hold off
        end
        axes(handles.axes3)
-       plot(t1,y,t,u,'r--')
-       s = lsiminfo(y,t1,1);
+       plot(t1,tResponse,t,u,'r-')
+%        ylim([-1.5 1.5])
+       s = lsiminfo(tResponse,t1,1);
        ts1 = s.SettlingTime;
        tp1 = s.MaxTime;
        set(handles.Mp,'String',NaN); 
@@ -101,16 +87,17 @@ switch entrada
    case 5 %Entrada Parábola
 
        u = t.^2;
-       [y, t1] = lsim(ft2,u,t);
-       y = y + ft_p;
+       [tResponse, t1] = lsim(ft2,u,t);
+       tResponse = tResponse + ft_p;
        if mantener == 1
            hold on
        else
            hold off
        end
        axes(handles.axes3)
-       plot(t1,y,t,u,'r--')
-       s = lsiminfo(y,t1,1);
+       plot(t1,tResponse,t,u,'r-')
+%        ylim([-1.5 1.5])
+       s = lsiminfo(tResponse,t1,1);
        ts1 = s.SettlingTime;
        tp1 = s.MaxTime;
        set(handles.Mp,'String',NaN); 

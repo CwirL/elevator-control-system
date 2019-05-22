@@ -22,7 +22,7 @@
 
 % Edit the above text to modify the response to help Ascensor
 
-% Last Modified by GUIDE v2.5 08-May-2019 22:57:41
+% Last Modified by GUIDE v2.5 21-May-2019 19:10:37
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -61,7 +61,11 @@ guidata(hObject, handles);
 % UIWAIT makes Ascensor wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 %  set(handles.,'visible','off');
+set(handles.axes19,'visible','off')
+set(handles.uipanel21,'visible','off');
+set(handles.uipanel22,'visible','off');
 set(handles.pushbutton25,'visible','off');
+set(handles.pushbutton27,'visible','off');
 set(handles.uipanel18,'visible','off');
 
 set(handles.funcion,'visible','off');
@@ -118,7 +122,8 @@ dataok =0;
 global actuadornumSim actuadordenSim plantanumSim plantadenSim sensornumSim sensordenSim dataok
 
 if (dataok) 
-find_system('Name','simulink_ascensor');     open_system('simulink_ascensor');
+find_system('Name','simulink_ascensor');     
+load_system('simulink_ascensor');
 
 %Controlador
 switch val
@@ -156,6 +161,31 @@ switch val
         ti1 = str2num(get(handles.ti,'String'));
         controladornum = [ti1*td1*kp1 kp1*ti1 1*kp1];
         controladorden = [ti1 0];
+    case 6 %Compensador de adelanto
+        kp1 = str2num(get(handles.kp,'String'));
+        T1 = str2num(get(handles.td,'String'));
+        alfa = str2num(get(handles.ti,'String'));
+        %K =Kp*alfa*tf([T1 1],[alfa*T1 1]);
+        controladornum = [kp1*alfa*T1 kp1*alfa];
+        controladorden = [alfa*T1 1];
+    case 7 %Compensador de retraso
+        kp1 = str2num(get(handles.kp,'String'));
+        T1 = str2num(get(handles.td,'String'));
+        beta = str2num(get(handles.ti,'String'));
+        %K = Kp*beta*tf([T1 1],[beta*T1 1]);
+        controladornum = [kp1*beta*T1 kp1*beta];
+        controladorden = [beta*T1 1];
+    case 8 %Compensador de atraso-adelanto 
+        kp1 = str2num(get(handles.kp,'String'));
+        T2 = str2num(get(handles.td,'String'));
+        T1 = str2num(get(handles.ti,'String'));
+        %alfa = str2num(get(handles.comp1,'String'));
+        beta = str2num(get(handles.comp2,'String'));
+        gamma = str2num(get(handles.comp3,'String'));
+        Pro = kp1*tf([1 1/T1],[1 gamma/T1])*tf([1 1/T2],[1 1/(beta*T2)]);
+        [rador,nador] = tfdata(Pro,'v');
+        controladornum = rador;
+        controladorden = nador;
 end 
 set_param('simulink_ascensor/Actuador','numerator',actuadornumSim);
 set_param('simulink_ascensor/Actuador','denominator',actuadordenSim);
@@ -174,20 +204,25 @@ s = tf('s');
 G1 = tf(controladornum,controladorden);
 G2 = tf(actuadornum,actuadorden);
 G3 = tf(plantanum,plantaden);
+
 H = tf(sensornum,sensorden);
 G = G1*G2*G3;
+
+%Estabilidad Routh
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Respuesta en el dominio del tiempo
+
 
 % Respuesta del sistema ante la perturbación
 ft = feedback(G,H);
 ft_reducida = balred(ft,2);
 [numerador,denominador] = tfdata(ft,'v');
 %Pole-Zero Plot of Dynamic System
-axes(handles.axes2)
-rlocus(G*H)
+
 
 %%% Recordar %%%
 % La respuesta del sistema es la superposicion 
@@ -203,7 +238,8 @@ switch per
     case 2
         ft_p  = step(P,t);
     case 3
-        ft_p  = impulse(P,t);
+        [ft_p, tex] = impulse(P,t);
+
     case 4
         ft_p  = impulse(P/s,t);
     case 5
@@ -218,16 +254,16 @@ switch funcion
     case 3
         ft2 = ft_reducida;
 end 
-ft2
+
 % 
 entrada = get(handles.entrada,'Value');
 mantener = get(handles.mantener,'Value');
 
 timeRes
-
 freqRes
+estabilidad
+save('ft2.mat')
 
-save ft2
 else
     msgbox('Por favor ingrese los datos')
 end
@@ -520,6 +556,12 @@ switch val
         set(handles.kp9,'visible','on')
         set(handles.td9,'visible','off')
         set(handles.ti9,'visible','off')
+        set(handles.co1,'visible','off')
+        set(handles.co2,'visible','off')
+        set(handles.co3,'visible','off')
+        set(handles.comp1,'visible','off')
+        set(handles.comp2,'visible','off')
+        set(handles.comp3,'visible','off')
     case 3
         set(handles.kp,'visible','on')
         set(handles.ti,'visible','on')
@@ -527,6 +569,12 @@ switch val
         set(handles.kp9,'visible','on')
         set(handles.ti9,'visible','on','String',"ti")
         set(handles.td9,'visible','off')
+        set(handles.co1,'visible','off')
+        set(handles.co2,'visible','off')
+        set(handles.co3,'visible','off')
+        set(handles.comp1,'visible','off')
+        set(handles.comp2,'visible','off')
+        set(handles.comp3,'visible','off')
     case 4
         set(handles.kp,'visible','on')
         set(handles.td,'visible','on')
@@ -534,6 +582,12 @@ switch val
         set(handles.kp9,'visible','on')
         set(handles.td9,'visible','on','String',"td")
         set(handles.ti9,'visible','off')
+        set(handles.co1,'visible','off')
+        set(handles.co2,'visible','off')
+        set(handles.co3,'visible','off')
+        set(handles.comp1,'visible','off')
+        set(handles.comp2,'visible','off')
+        set(handles.comp3,'visible','off')
     case 5
         set(handles.kp,'visible','on')
         set(handles.td,'visible','on')
@@ -541,20 +595,38 @@ switch val
         set(handles.kp9,'visible','on')
         set(handles.td9,'visible','on','String',"td")
         set(handles.ti9,'visible','on','String',"ti")
+        set(handles.co1,'visible','off')
+        set(handles.co2,'visible','off')
+        set(handles.co3,'visible','off')
+        set(handles.comp1,'visible','off')
+        set(handles.comp2,'visible','off')
+        set(handles.comp3,'visible','off')
     case 6
         set(handles.kp,'visible','on')
         set(handles.ti,'visible','on')
         set(handles.td,'visible','on')
         set(handles.kp9,'visible','on')
-        set(handles.ti9,'visible','on','String',"Beta")
+        set(handles.ti9,'visible','on','String',"Alfa")
         set(handles.td9,'visible','on','String',"T1")
+        set(handles.co1,'visible','off')
+        set(handles.co2,'visible','off')
+        set(handles.co3,'visible','off')
+        set(handles.comp1,'visible','off')
+        set(handles.comp2,'visible','off')
+        set(handles.comp3,'visible','off')
     case 7
         set(handles.kp,'visible','on')
         set(handles.td,'visible','on')
         set(handles.ti,'visible','on')
         set(handles.kp9,'visible','on')
         set(handles.td9,'visible','on','String',"T1")
-        set(handles.ti9,'visible','on','String',"Alfa")
+        set(handles.ti9,'visible','on','String',"Beta")
+        set(handles.co1,'visible','off')
+        set(handles.co2,'visible','off')
+        set(handles.co3,'visible','off')
+        set(handles.comp1,'visible','off')
+        set(handles.comp2,'visible','off')
+        set(handles.comp3,'visible','off')
     case 8
         set(handles.kp,'visible','on')
         set(handles.td,'visible','on')
@@ -562,6 +634,12 @@ switch val
         set(handles.kp9,'visible','on')
         set(handles.td9,'visible','on','String',"T2")
         set(handles.ti9,'visible','on','String',"T1")
+        set(handles.comp1,'visible','on')
+        set(handles.comp2,'visible','on')
+        set(handles.comp3,'visible','on')
+        set(handles.co1,'visible','on','String',"Alfa")
+        set(handles.co2,'visible','on','String',"Beta")
+        set(handles.co3,'visible','on','String',"Gamma")
 end 
 
 % --- Executes during object creation, after setting all properties.
@@ -1066,7 +1144,7 @@ function pushbutton8_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton8 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-region_estable
+set(handles.uipanel22,'visible','on');
 
 
 % --- Executes on button press in pushbutton9.
@@ -1284,4 +1362,105 @@ function pushbutton26_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton26 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+global ax3 tResponse
+set(handles.pushbutton26,'visible','off')
+set(handles.axes3,'visible','off')
+set(handles.pushbutton27,'visible','on')
+set(handles.uipanel9,'visible','off')
+set(handles.respuestafrecuencia,'visible','off')
+set(handles.uipanel21,'visible','on');
+set(handles.axes19,'visible','on')
 motion
+
+
+% --- Executes on button press in pushbutton27.
+function pushbutton27_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton27 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global ax19
+cla(ax19);
+set(handles.axes19,'visible','off')
+set(handles.axes3,'visible','on')
+set(handles.pushbutton27,'visible','off')
+set(handles.pushbutton26,'visible','on')
+set(handles.uipanel9,'visible','on')
+set(handles.respuestafrecuencia,'visible','on')
+set(handles.uipanel21,'visible','off');
+
+
+
+function edit39_Callback(hObject, eventdata, handles)
+% hObject    handle to comp1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of comp1 as text
+%        str2double(get(hObject,'String')) returns contents of comp1 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit39_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to comp1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit40_Callback(hObject, eventdata, handles)
+% hObject    handle to comp2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of comp2 as text
+%        str2double(get(hObject,'String')) returns contents of comp2 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit40_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to comp2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit41_Callback(hObject, eventdata, handles)
+% hObject    handle to comp3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of comp3 as text
+%        str2double(get(hObject,'String')) returns contents of comp3 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit41_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to comp3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton29.
+function pushbutton29_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton29 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+set(handles.uipanel22,'visible','off');
